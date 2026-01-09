@@ -8,10 +8,15 @@
  * Supports two modes:
  * - 'simplified': Basic FEN with placeholder castling/en passant
  * - 'full': Complete FEN with parsed castling rights and en passant square
+ * 
+ * Supports variants:
+ * - chess: Standard chess
+ * - crazyhouse: Crazyhouse with pocket pieces in FEN
  */
 export class FenBuilder {
-    constructor(mode = 'simplified') {
+    constructor(mode = 'full') {
         this.mode = mode; // 'simplified' | 'full'
+        this.variant = 'chess'; // 'chess' | 'crazyhouse' | etc.
     }
 
     /**
@@ -25,8 +30,13 @@ export class FenBuilder {
         }
 
         const partialFen = message.d.fen;
-        const isWhitesTurn = message.d.ply % 2 === 0;
+        const ply = message.d.ply ?? message.v ?? 0;
+        const isWhitesTurn = ply % 2 === 0;
         const turnChar = isWhitesTurn ? 'w' : 'b';
+
+        if (this.variant === 'crazyhouse') {
+            return this._buildCrazyhouse(partialFen, turnChar, message);
+        }
 
         if (this.mode === 'full') {
             return this._buildFull(partialFen, turnChar, message);
@@ -78,6 +88,64 @@ export class FenBuilder {
     }
 
     /**
+     * Build Crazyhouse FEN with pocket pieces
+     * Format: position[pockets] turn castling enpassant halfmove fullmove
+     * 
+     * @param {string} partialFen - Board position from Lichess
+     * @param {string} turnChar - 'w' or 'b'
+     * @param {Object} message - Full WebSocket message
+     * @returns {string} FEN string
+     */
+    _buildCrazyhouse(partialFen, turnChar, message) {
+        const pockets = message.d.crazyhouse?.pockets || [{}, {}];
+        const whitePocket = this._pocketToString(pockets[0], true);
+        const blackPocket = this._pocketToString(pockets[1], false);
+        
+        // Crazyhouse FEN: position[pockets] turn castling - 0 1
+        const positionWithPockets = `${partialFen}[${whitePocket}${blackPocket}]`;
+        
+        // Castling rights (even in crazyhouse, if variant supports it)
+        let castling = '-';
+        if (message.d.castle) {
+            castling = '';
+            if (message.d.castle.white?.king) castling += 'K';
+            if (message.d.castle.white?.queen) castling += 'Q';
+            if (message.d.castle.black?.king) castling += 'k';
+            if (message.d.castle.black?.queen) castling += 'q';
+            if (!castling) castling = '-';
+        }
+        
+        return `${positionWithPockets} ${turnChar} ${castling} - 0 1`;
+    }
+
+    /**
+     * Convert pocket object to FEN pocket string
+     * @param {Object} pocket - Pocket pieces {pawn: 2, knight: 1, ...}
+     * @param {boolean} isWhite - True for white pieces
+     * @returns {string} FEN pocket string (e.g., 'PPNnb')
+     */
+    _pocketToString(pocket, isWhite) {
+        if (!pocket) return '';
+        
+        const pieceMap = { 
+            pawn: 'p', 
+            knight: 'n', 
+            bishop: 'b', 
+            rook: 'r', 
+            queen: 'q' 
+        };
+        
+        let result = '';
+        for (const [piece, count] of Object.entries(pocket)) {
+            const char = pieceMap[piece.toLowerCase()] || piece[0].toLowerCase();
+            const pieceChar = isWhite ? char.toUpperCase() : char.toLowerCase();
+            result += pieceChar.repeat(count);
+        }
+        
+        return result;
+    }
+
+    /**
      * Set FEN builder mode
      * @param {string} mode - 'simplified' | 'full'
      */
@@ -86,5 +154,13 @@ export class FenBuilder {
             throw new Error(`Invalid mode: ${mode}. Must be 'simplified' or 'full'`);
         }
         this.mode = mode;
+    }
+
+    /**
+     * Set variant
+     * @param {string} variant - Variant name (e.g., 'chess', 'crazyhouse')
+     */
+    setVariant(variant) {
+        this.variant = variant;
     }
 }
