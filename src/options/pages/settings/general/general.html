@@ -214,6 +214,68 @@
                     </div>
                 </div>
             </div>
+            <div id="websocket-mode" class="scrollspy">
+                <h3 class="header">WebSocket Mode (Lichess)</h3>
+                <div class="section">
+                    <p class="flow-text">
+                        <span class="tooltipped" data-position="right"
+                              data-tooltip="Experimental feature: Intercepts WebSocket messages on Lichess to automatically
+                                            analyze positions and send moves in real-time. This bypasses the normal
+                                            autoplay mechanism and sends moves directly through the game's WebSocket connection.">
+                            <i class="material-icons info-tooltip">info</i>
+                        </span>
+                        WebSocket Mode allows direct integration with Lichess games, automatically analyzing positions
+                        and sending moves through the game's WebSocket connection.
+                    </p>
+                </div>
+                <div class="section switch">
+                    <label class="switch-label">Enable WebSocket Mode</label>
+                    <label>
+                        Off
+                        <input id="websocket_mode_checkbox" type="checkbox">
+                        <span class="lever"></span>
+                        On
+                    </label>
+                </div>
+                <div class="section">
+                    <label>
+                        <span class="tooltipped" data-position="right"
+                              data-tooltip="Lag compensation value sent to Lichess server. Higher values may result in
+                                            faster move execution. Default: 10000ms">
+                            Lag Compensation (ms) <i class="material-icons info-tooltip">info</i>
+                        </span>
+                        <input id="lag_compensation_input" type="number">
+                    </label>
+                </div>
+                <div class="section">
+                    <label>
+                        Lag Strategy
+                        <select name="lag_strategy" id="lag_strategy_select">
+                            <option value="fixed">Fixed (always use configured value)</option>
+                            <option value="dynamic">Dynamic (use server-reported lag)</option>
+                            <option value="max">Maximum (use highest observed lag)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="section">
+                    <label>
+                        FEN Mode
+                        <select name="fen_mode" id="fen_mode_select">
+                            <option value="simplified">Simplified (basic FEN)</option>
+                            <option value="full">Full (with castling/en passant)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="section">
+                    <label>
+                        Premove Flag
+                        <select name="premove_flag" id="premove_flag_select">
+                            <option value="1">Normal (1)</option>
+                            <option value="-10">Aggressive (-10)</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
         </div>
         <div class="big-section">
             <div class="flex-group flex-small-gap">
@@ -229,6 +291,9 @@
                 </li>
                 <li>
                     <a href="#autoplay">Autoplay</a>
+                </li>
+                <li>
+                    <a href="#websocket-mode">WebSocket Mode</a>
                 </li>
             </ul>
         </div>

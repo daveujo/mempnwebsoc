@@ -39,6 +39,30 @@
         "lib/lru.min.js",
         "src/scripts/content-script.js"
       ]
+    },
+    {
+      "matches": [
+        "*://lichess.org/*"
+      ],
+      "js": [
+        "src/scripts/page-context-bridge.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lib/engine/*/*.wasm",
+        "lib/engine/*/*.js",
+        "lib/engine/*/weights/*",
+        "lib/engine/*/*.nnue"
+      ],
+      "matches": [
+        "*://lichess.org/*",
+        "*://www.chess.com/*"
+      ]
     }
   ],
   "sandbox": {
