@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "My Educational Chess Extension",
+  "version": "1.1",
+  "description": "An educational extension demonstrating script conversion.",
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://lichess.org/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "stockfish.js",
+        "bot.js"
+      ],
+      "matches": [
+        "*://lichess.org/*"
+      ]
+    }
+  ]
+}
