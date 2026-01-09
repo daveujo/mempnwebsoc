@@ -1,4 +1,4 @@
-Now I have a complete picture.  Let me create the revised and accurate specification sheet:
+specification sheet:
 
 ---
 
