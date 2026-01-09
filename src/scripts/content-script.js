@@ -90,6 +90,11 @@ window.onload = () => {
     site = siteMap[window.location.hostname];
     pullConfig();
     determineStartPosition();
+    
+    // Initialize WebSocket mode integration for Lichess
+    if (site === 'lichess') {
+        initializeWebSocketMode();
+    }
 };
 
 chrome.runtime.onMessage.addListener(response => {
@@ -119,6 +124,12 @@ chrome.runtime.onMessage.addListener(response => {
         config = response.config;
     } else if (response.consoleMessage) {
         console.log(response.consoleMessage);
+    } else if (response.sendWebSocketMove) {
+        // Send move through WebSocket (for WebSocket mode)
+        sendWebSocketMove(response.movePacket);
+    } else if (response.checkWebSocketState) {
+        // Check WebSocket state
+        checkWebSocketState();
     }
 });
 
@@ -658,4 +669,77 @@ async function simulatePromotionClicks(promotion) {
     if (promotionChoice) {
         await simulateClickSquare(promotionChoice.getBoundingClientRect())
     }
+}
+
+// -------------------------------------------------------------------------------------------
+// WebSocket Mode Integration
+// -------------------------------------------------------------------------------------------
+
+/**
+ * Initialize WebSocket mode for Lichess
+ * Listens for messages from page context bridge (MAIN world)
+ */
+function initializeWebSocketMode() {
+    console.log('[Mephisto] Initializing WebSocket mode integration');
+    
+    // Listen for WebSocket messages from page context bridge
+    window.addEventListener('mephisto-ws-message', (event) => {
+        const message = event.detail;
+        
+        // Forward WebSocket messages to popup for processing
+        chrome.runtime.sendMessage({
+            wsMessage: true,
+            message: message
+        });
+    });
+    
+    // Listen for WebSocket ready event
+    window.addEventListener('mephisto-ws-ready', () => {
+        console.log('[Mephisto] WebSocket interceptor ready');
+        chrome.runtime.sendMessage({
+            wsReady: true
+        });
+    });
+    
+    // Listen for move sent confirmation
+    window.addEventListener('mephisto-move-sent', (event) => {
+        const { success } = event.detail;
+        console.log('[Mephisto] Move sent:', success);
+        chrome.runtime.sendMessage({
+            moveSent: true,
+            success: success
+        });
+    });
+    
+    // Listen for WebSocket state updates
+    window.addEventListener('mephisto-ws-state', (event) => {
+        const { isOpen } = event.detail;
+        chrome.runtime.sendMessage({
+            wsState: true,
+            isOpen: isOpen
+        });
+    });
+}
+
+/**
+ * Send command to page context bridge
+ */
+function sendPageCommand(command, data = {}) {
+    window.dispatchEvent(new CustomEvent('mephisto-command', {
+        detail: { command, data }
+    }));
+}
+
+/**
+ * Send move through WebSocket (via page context bridge)
+ */
+function sendWebSocketMove(movePacket) {
+    sendPageCommand('send-move', { movePacket });
+}
+
+/**
+ * Check WebSocket state
+ */
+function checkWebSocketState() {
+    sendPageCommand('check-ws-state');
 }
