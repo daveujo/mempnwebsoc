@@ -1,4 +1,5 @@
 import {Chess} from '../../lib/chess.js';
+import {MoveController} from '../lib/move-controller.js';
 
 let engine;
 let board;
@@ -11,6 +12,10 @@ let last_eval = {fen: '', activeLines: 0, lines: []};
 let turn = ''; // 'w' | 'b'
 let currentVariant = 'chess';  // Track current detected variant
 let engineInitialized = false;
+
+// WebSocket mode controller
+let moveController = null;
+let wsMode = false;
 
 // Determine if we are running in a floating window and which tab we are watching
 let targetTabId = new URLSearchParams(window.location.search).get('targetTabId');
@@ -49,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const thinkVariance = JSON.parse(localStorage.getItem('think_variance'));
     const moveTime = JSON.parse(localStorage.getItem('move_time'));
     const moveVariance = JSON.parse(localStorage.getItem('move_variance'));
+    const lagCompensation = JSON.parse(localStorage.getItem('lag_compensation'));
     
     config = {
         engine: JSON.parse(localStorage.getItem('engine')) || 'stockfish-16-nnue-7',
@@ -71,6 +77,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         pieces: JSON.parse(localStorage.getItem('pieces')) || 'wikipedia.svg',
         board: JSON.parse(localStorage.getItem('board')) || 'brown',
         coordinates: JSON.parse(localStorage.getItem('coordinates')) || false,
+        // WebSocket mode settings
+        websocket_mode: JSON.parse(localStorage.getItem('websocket_mode')) || false,
+        lag_compensation: (lagCompensation != null) ? lagCompensation : 10000,
+        lag_strategy: JSON.parse(localStorage.getItem('lag_strategy')) || 'fixed',
+        fen_mode: JSON.parse(localStorage.getItem('fen_mode')) || 'simplified',
+        premove_flag: parseInt(JSON.parse(localStorage.getItem('premove_flag')) || '1', 10),
     };
     push_config();
 
@@ -100,6 +112,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     await initialize_engine();
     engineInitialized = true;
 
+    // Initialize WebSocket mode if enabled
+    if (config.websocket_mode) {
+        await initializeWebSocketMode();
+    }
+
     // listen to messages from content-script
     chrome.runtime.onMessage.addListener(async function (response) {
         if (response.fenresponse && response.dom !== 'no') {
@@ -119,6 +136,15 @@ document.addEventListener('DOMContentLoaded', async function () {
             push_config();
         } else if (response.click) {
             dispatch_click_event(response.x, response.y);
+        } else if (response.wsMessage) {
+            // Handle WebSocket messages from page context bridge
+            if (wsMode && moveController) {
+                await moveController.processMessage(response.message);
+            }
+        } else if (response.wsReady) {
+            console.log('[Mephisto Popup] WebSocket interceptor ready');
+        } else if (response.moveSent) {
+            console.log('[Mephisto Popup] Move sent:', response.success);
         }
     });
 
@@ -495,3 +521,62 @@ async function request_remote_configure(o) { return call_backend('http://localho
 async function request_remote_analysis(f, t, m = null) { return call_backend('http://localhost:9090/analyse', {fen: f, moves: m, time: t}).then(res => res.json()); }
 async function call_backend(url, d) { return fetch(url, {method: 'POST', credentials: 'include', cache: 'no-cache', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(d)}); }
 function promise_timeout(t) { return new Promise(r => setTimeout(() => r(t), t)); }
+
+// --- WEBSOCKET MODE ---
+
+/**
+ * Initialize WebSocket mode
+ */
+async function initializeWebSocketMode() {
+    console.log('[Mephisto Popup] Initializing WebSocket mode');
+    
+    moveController = new MoveController({
+        defaultLag: config.lag_compensation,
+        maxLag: config.lag_compensation,
+        lagStrategy: config.lag_strategy,
+        fenMode: config.fen_mode,
+        premoveFlag: config.premove_flag,
+        depth: 10
+    });
+    
+    await moveController.initialize(config.engine);
+    
+    // Set up move calculated callback
+    moveController.onMoveCalculated = (move, fen) => {
+        console.log('[Mephisto Popup] Move calculated:', move);
+        
+        // Send move through WebSocket via content script
+        if (targetTabId) {
+            chrome.tabs.sendMessage(parseInt(targetTabId), {
+                sendWebSocketMove: true,
+                movePacket: moveController.movePacketFactory.create(
+                    move,
+                    moveController.lagManager.getCurrent()
+                )
+            });
+        } else {
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                if (tabs[0]) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        sendWebSocketMove: true,
+                        movePacket: moveController.movePacketFactory.create(
+                            move,
+                            moveController.lagManager.getCurrent()
+                        )
+                    });
+                }
+            });
+        }
+    };
+    
+    // Set up FEN updated callback
+    moveController.onFenUpdated = (fen) => {
+        console.log('[Mephisto Popup] FEN updated:', fen);
+        board.position(fen);
+    };
+    
+    moveController.setEnabled(true);
+    wsMode = true;
+    
+    console.log('[Mephisto Popup] WebSocket mode initialized');
+}

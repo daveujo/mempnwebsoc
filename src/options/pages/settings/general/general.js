@@ -23,6 +23,14 @@ class GeneralSettings extends SettingsPage {
         this.registerFormElement('think_variance', 'Simulated Think Variance (ms):', 'input', 500);
         this.registerFormElement('move_time', 'Simulated Move Time (ms):', 'input', 500);
         this.registerFormElement('move_variance', 'Simulated Move Variance (ms):', 'input', 250);
+        
+        // WebSocket Mode settings
+        this.registerFormElement('websocket_mode', 'Enable WebSocket Mode:', 'checkbox', false);
+        this.registerFormElement('lag_compensation', 'Lag Compensation (ms):', 'input', 10000);
+        this.registerFormElement('lag_strategy', 'Lag Strategy:', 'select', 'fixed');
+        this.registerFormElement('fen_mode', 'FEN Mode:', 'select', 'simplified');
+        this.registerFormElement('premove_flag', 'Premove Flag:', 'select', '1');
+        
         const engineLabelTooltiped = document.querySelector('#engine-label-tooltiped');
         const engineLabelUntooltiped = document.querySelector('#engine-label-untooltiped');
         for (const range of [multipv_range, threads_range, memory_range]) {
