@@ -165,7 +165,7 @@ export class EngineInterface {
     async _loadLc0Weights(basePath) {
         // LC0 weights filename from config or default
         const weightsFile = this.config.weightsFile || 'weights_32195.dat.gz';
-        const weightsPath = `${basePath}lib/${weightsFile}`;
+        const weightsPath = `${basePath}weights/${weightsFile}`;
         const weights = await fetch(weightsPath).then(r => r.arrayBuffer());
         
         this.engine.postMessage({
@@ -195,6 +195,17 @@ export class EngineInterface {
                     this.engine.uci(command);
                 }
                 break;
+        }
+    }
+
+    /**
+     * Set variant for Fairy Stockfish
+     * @param {string} variant - Variant name (e.g., 'chess', 'crazyhouse')
+     */
+    setVariant(variant) {
+        if (this.config.supportsVariants) {
+            this.send(`setoption name UCI_Variant value ${variant}`);
+            console.log('[EngineInterface] Variant set to:', variant);
         }
     }
 

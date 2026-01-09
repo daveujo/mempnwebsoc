@@ -80,9 +80,11 @@ document.addEventListener('DOMContentLoaded', async function () {
         // WebSocket mode settings
         websocket_mode: JSON.parse(localStorage.getItem('websocket_mode')) || false,
         lag_compensation: (lagCompensation != null) ? lagCompensation : 10000,
-        lag_strategy: JSON.parse(localStorage.getItem('lag_strategy')) || 'fixed',
-        fen_mode: JSON.parse(localStorage.getItem('fen_mode')) || 'simplified',
+        lag_strategy: JSON.parse(localStorage.getItem('lag_strategy')) || 'smart',
+        fen_mode: JSON.parse(localStorage.getItem('fen_mode')) || 'full',
         premove_flag: parseInt(JSON.parse(localStorage.getItem('premove_flag')) || '1', 10),
+        vpn_offset: parseInt(JSON.parse(localStorage.getItem('vpn_offset')) || '0', 10),
+        analysis_timeout: parseInt(JSON.parse(localStorage.getItem('analysis_timeout')) || '5000', 10),
     };
     push_config();
 
@@ -122,11 +124,19 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (response.fenresponse && response.dom !== 'no') {
             if (board.orientation() !== response.orient) {
                 board.orientation(response.orient);
+                // Update player color when orientation changes in WebSocket mode
+                if (wsMode && moveController) {
+                    moveController.setPlayerColor(response.orient === 'white' ? 'w' : 'b');
+                }
             }
             const detectedVariant = response.detectedVariant || 'chess';
             if (detectedVariant !== currentVariant) {
                 currentVariant = detectedVariant;
                 await handleVariantChange(detectedVariant);
+                // Update variant in WebSocket mode
+                if (wsMode && moveController) {
+                    moveController.fenBuilder.setVariant(detectedVariant);
+                }
             }
             const {fen, startFen, moves} = parse_position_from_response(response.dom);
             if (last_eval.fen !== fen) {
@@ -536,10 +546,21 @@ async function initializeWebSocketMode() {
         lagStrategy: config.lag_strategy,
         fenMode: config.fen_mode,
         premoveFlag: config.premove_flag,
-        depth: 10
+        vpnPingOffset: config.vpn_offset ?? 0,
+        depth: 10,
+        analysisTimeout: config.analysis_timeout ?? 5000
     });
     
-    await moveController.initialize(config.engine);
+    await moveController.initialize(config.engine, { variant: config.variant });
+    
+    // Set player color from board orientation
+    const orientation = board.orientation();
+    moveController.setPlayerColor(orientation === 'white' ? 'w' : 'b');
+    
+    // Set variant in FEN builder
+    if (config.variant) {
+        moveController.fenBuilder.setVariant(config.variant);
+    }
     
     // Set up move calculated callback
     moveController.onMoveCalculated = (move, fen) => {
@@ -551,7 +572,8 @@ async function initializeWebSocketMode() {
                 sendWebSocketMove: true,
                 movePacket: moveController.movePacketFactory.create(
                     move,
-                    moveController.lagManager.getCurrent()
+                    moveController.lagManager.getCurrent(),
+                    moveController.gameStateTracker.getAck()
                 )
             });
         } else {
@@ -561,7 +583,8 @@ async function initializeWebSocketMode() {
                         sendWebSocketMove: true,
                         movePacket: moveController.movePacketFactory.create(
                             move,
-                            moveController.lagManager.getCurrent()
+                            moveController.lagManager.getCurrent(),
+                            moveController.gameStateTracker.getAck()
                         )
                     });
                 }
@@ -572,7 +595,16 @@ async function initializeWebSocketMode() {
     // Set up FEN updated callback
     moveController.onFenUpdated = (fen) => {
         console.log('[Mephisto Popup] FEN updated:', fen);
-        board.position(fen);
+        // Update board display (extract position from FEN)
+        const position = fen.split(' ')[0];
+        // Remove pocket notation for crazyhouse if present
+        const cleanPosition = position.replace(/\[.*?\]/g, '');
+        board.position(cleanPosition);
+    };
+    
+    // Set up game end callback
+    moveController.onGameEnd = () => {
+        console.log('[Mephisto Popup] Game ended');
     };
     
     moveController.setEnabled(true);
