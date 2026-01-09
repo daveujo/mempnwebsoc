@@ -19,6 +19,12 @@ import { LagManager } from './lag-manager.js';
 import { FenBuilder } from './fen-builder.js';
 import { MovePacketFactory } from './move-packet-factory.js';
 
+// Lichess WebSocket message types
+const MESSAGE_TYPES = {
+    GAME_DATA: 'd',
+    MOVE: 'move',
+};
+
 export class MoveController {
     constructor(config = {}) {
         // Component initialization
@@ -85,7 +91,8 @@ export class MoveController {
             }
 
             // Check for game state or move updates (from bot.js line 40)
-            if ((message.t === 'd' || message.t === 'move') && message.d && typeof message.d.fen === 'string') {
+            if ((message.t === MESSAGE_TYPES.GAME_DATA || message.t === MESSAGE_TYPES.MOVE) && 
+                message.d && typeof message.d.fen === 'string') {
                 // Build FEN from message
                 const fen = this.fenBuilder.build(message);
                 

@@ -87,6 +87,7 @@ export const ENGINE_REGISTRY = {
         htmlEntry: 'lc0.html',
         hasNnue: true,
         nnuePath: 'weights/',
+        weightsFile: 'weights_32195.dat.gz',
         supportsVariants: false,
         loadMethod: 'iframe',
         uciMethod: 'postMessage',

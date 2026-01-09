@@ -135,7 +135,8 @@
     });
 
     // Auto-install on Lichess pages
-    if (window.location.hostname.includes('lichess.org')) {
+    if (window.location.hostname === 'lichess.org' || 
+        window.location.hostname.endsWith('.lichess.org')) {
         installWebSocketInterceptor();
     }
     

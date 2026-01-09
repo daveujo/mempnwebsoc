@@ -163,12 +163,14 @@ export class EngineInterface {
      * Load LC0 neural network weights
      */
     async _loadLc0Weights(basePath) {
-        const weightsPath = `${basePath}lib/weights_32195.dat.gz`;
+        // LC0 weights filename from config or default
+        const weightsFile = this.config.weightsFile || 'weights_32195.dat.gz';
+        const weightsPath = `${basePath}lib/${weightsFile}`;
         const weights = await fetch(weightsPath).then(r => r.arrayBuffer());
         
         this.engine.postMessage({
             type: 'weights',
-            data: { name: 'weights_32195.dat.gz', weights }
+            data: { name: weightsFile, weights }
         }, '*');
         
         // Wait for weights to load
