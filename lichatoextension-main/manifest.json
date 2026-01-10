@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Lichess Funnies (Chess Automation)",
+  "version": "36.6",
+  "description": "Chess automation tool for Lichess - speed optimized with smart lag compensation and weakened panic mode",
+  "permissions": [],
+  "host_permissions": [
+    "https://lichess.org/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://lichess.org/*"],
+      "js": [
+        "jquery-3.6.0.min.js",
+        "chess.js",
+        "stockfish8.js",
+        "stockfish.js",
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
