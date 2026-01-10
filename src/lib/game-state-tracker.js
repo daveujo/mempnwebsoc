@@ -84,6 +84,7 @@ export class GameStateTracker {
 
         // Handle reload/resync
         if (message.t === MESSAGE_TYPES.RELOAD || message.t === MESSAGE_TYPES.RESYNC) {
+            console.log(`[GameStateTracker] ${message.t} received, resetting state`);
             this.reset();
             result.shouldProcess = false;
             return result;
@@ -111,6 +112,17 @@ export class GameStateTracker {
                 // Update ACK from game data
                 if (message.d.ack !== undefined) {
                     this.currentAck = message.d.ack;
+                }
+                
+                // Also update ACK from ply if ack not present
+                if (message.d.ply !== undefined && message.d.ack === undefined) {
+                    this.currentAck = message.d.ply;
+                }
+                
+                // Check for game end in move data (status/winner)
+                if (message.d.status || message.d.winner) {
+                    this.gameEnded = true;
+                    result.isGameEnd = true;
                 }
             }
         }

@@ -1,12 +1,16 @@
 /**
  * Page Context Bridge - Runs in MAIN world to intercept WebSocket
  * 
+ * Enhanced from: lichatoextension-main/mover.user.js (lines 302-441)
+ * 
  * This script:
  * 1. Runs in the page's main JavaScript context (world: "MAIN")
  * 2. Intercepts WebSocket connections to Lichess
- * 3. Captures game state messages
- * 4. Sends moves back to Lichess
- * 5. Communicates with content script via CustomEvents
+ * 3. Captures game state messages and extracts lag/ACK data
+ * 4. Wraps WebSocket send to prevent duplicate/post-game moves
+ * 5. Tracks WebSocket state changes (open/close/error)
+ * 6. Sends moves back to Lichess
+ * 7. Communicates with content script via CustomEvents
  * 
  * Note: Cannot use ES6 imports in MAIN world, must be vanilla JS
  */
@@ -19,9 +23,26 @@
     let activeSocket = null;
     let originalWebSocket = null;
     let wsInterceptorEnabled = false;
+    
+    // Game state tracking (simplified version for page context)
+    let gameEnded = false;
+    let lastMoveAcked = false;
+    let pendingMoveUci = null;
+    let currentAck = 0;
+    let lastWebSocketState = null;
 
     /**
-     * Install WebSocket interceptor
+     * Reset game state
+     */
+    function resetGameState() {
+        gameEnded = false;
+        lastMoveAcked = false;
+        pendingMoveUci = null;
+        console.log('[Bridge] Game state reset');
+    }
+
+    /**
+     * Install WebSocket interceptor with enhanced tracking
      */
     function installWebSocketInterceptor() {
         if (wsInterceptorEnabled) return;
@@ -35,11 +56,112 @@
                 const socket = new target(...args);
                 activeSocket = socket;
 
+                // Wrap send method to block duplicate/post-game moves
+                const originalSend = socket.send.bind(socket);
+                socket.send = function(data) {
+                    try {
+                        const msg = JSON.parse(data);
+                        if (msg.t === 'move' && msg.d && msg.d.u) {
+                            // Block if game ended
+                            if (gameEnded) {
+                                console.log(`[Send] ❌ Blocked (game ended): ${msg.d.u}`);
+                                return;
+                            }
+                            // Block duplicate of pending move
+                            if (pendingMoveUci === msg.d.u && !lastMoveAcked) {
+                                console.log(`[Send] ❌ Blocked (duplicate pending): ${msg.d.u}`);
+                                return;
+                            }
+                            // Track this move
+                            pendingMoveUci = msg.d.u;
+                            lastMoveAcked = false;
+                            console.log(`[Send] ✅ ${msg.d.u} | a: ${msg.d.a} | l: ${msg.d.l}ms`);
+                        }
+                    } catch (e) {}
+                    return originalSend(data);
+                };
+
+                // Track WebSocket state changes
+                socket.addEventListener('open', () => {
+                    console.log('[WebSocket] ✅ Connected');
+                    lastWebSocketState = 1;
+                    
+                    // Notify content script
+                    window.dispatchEvent(new CustomEvent('mephisto-ws-state-change', {
+                        detail: { state: 'open' }
+                    }));
+                    
+                    // Reset game state on reconnect
+                    pendingMoveUci = null;
+                });
+
+                socket.addEventListener('close', () => {
+                    console.log('[WebSocket] ❌ Disconnected');
+                    lastWebSocketState = 3;
+                    activeSocket = null;
+                    
+                    window.dispatchEvent(new CustomEvent('mephisto-ws-state-change', {
+                        detail: { state: 'close' }
+                    }));
+                });
+
+                socket.addEventListener('error', () => {
+                    console.log('[WebSocket] ⚠️ Error');
+                    
+                    window.dispatchEvent(new CustomEvent('mephisto-ws-state-change', {
+                        detail: { state: 'error' }
+                    }));
+                });
+
                 socket.addEventListener('message', (event) => {
                     try {
                         const message = JSON.parse(event.data);
                         
-                        // Forward WebSocket messages to content script
+                        // Track ACK - move was accepted
+                        if (message.t === 'ack') {
+                            lastMoveAcked = true;
+                            console.log(`[ACK] Move accepted: ${pendingMoveUci}`);
+                            pendingMoveUci = null;
+                        }
+                        
+                        // Track game end
+                        if (message.t === 'endData' || (message.d && message.d.status && message.d.winner)) {
+                            gameEnded = true;
+                            console.log(`[Game] Ended - blocking further moves`);
+                        }
+                        
+                        // Track move confirmations and extract ACK
+                        if (message.t === 'move' && message.d) {
+                            if (typeof message.d.ply !== 'undefined') {
+                                currentAck = message.d.ply;
+                            }
+                            
+                            // Check for game end in move response
+                            if (message.d.status || message.d.winner) {
+                                gameEnded = true;
+                            }
+                            
+                            // Clear pending after our move is confirmed
+                            if (message.d.uci === pendingMoveUci) {
+                                pendingMoveUci = null;
+                            }
+                        }
+                        
+                        // Handle reload/resync messages
+                        if (message.t === 'reload' || message.t === 'resync') {
+                            console.log(`[WebSocket] 🔄 ${message.t} received, resetting state`);
+                            resetGameState();
+                        }
+                        
+                        // Extract and forward lag data from clock messages
+                        if (message.d?.clock?.lag !== undefined) {
+                            const lagMs = message.d.clock.lag < 100 ? message.d.clock.lag * 10 : message.d.clock.lag;
+                            window.dispatchEvent(new CustomEvent('mephisto-lag-update', {
+                                detail: { lag: lagMs }
+                            }));
+                        }
+                        
+                        // Forward all WebSocket messages to content script
                         window.dispatchEvent(new CustomEvent('mephisto-ws-message', {
                             detail: message
                         }));
@@ -47,15 +169,6 @@
                     } catch (e) {
                         // Non-JSON message, ignore
                     }
-                });
-
-                socket.addEventListener('close', () => {
-                    console.log('[Mephisto] WebSocket closed');
-                    activeSocket = null;
-                });
-
-                socket.addEventListener('error', (error) => {
-                    console.error('[Mephisto] WebSocket error:', error);
                 });
 
                 return socket;
@@ -83,6 +196,7 @@
         
         wsInterceptorEnabled = false;
         activeSocket = null;
+        resetGameState();
     }
 
     /**
@@ -130,6 +244,10 @@
                 window.dispatchEvent(new CustomEvent('mephisto-ws-state', {
                     detail: { isOpen }
                 }));
+                break;
+                
+            case 'reset-game-state':
+                resetGameState();
                 break;
         }
     });
