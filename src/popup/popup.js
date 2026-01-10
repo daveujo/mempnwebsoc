@@ -190,6 +190,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         document.getElementById('dark-mode-icon').innerText = isDark ? 'brightness_high' : 'brightness_4';
     });
 
+    // Setup WebSocket control event listeners
+    setupWebSocketControls();
+
     M.Tooltip.init(document.querySelectorAll('.tooltipped'), {});
 });
 
@@ -610,5 +613,184 @@ async function initializeWebSocketMode() {
     moveController.setEnabled(true);
     wsMode = true;
     
+    // Show WebSocket controls
+    document.getElementById('ws-controls').style.display = 'block';
+    
+    // Initialize UI state from config or defaults
+    const panicMode = JSON.parse(localStorage.getItem('ws_panic_mode')) || false;
+    const humanMode = JSON.parse(localStorage.getItem('ws_human_mode')) || false;
+    const variedMode = JSON.parse(localStorage.getItem('ws_varied_mode')) !== false; // Default true
+    const preset = localStorage.getItem('ws_preset') || '15s';
+    const vpnOffset = parseInt(localStorage.getItem('vpn_offset')) || 0;
+    
+    // Apply initial settings to controller
+    moveController.setPanicMode(panicMode);
+    moveController.setHumanMode(humanMode);
+    moveController.setVariedMode(variedMode);
+    moveController.applyPreset(preset);
+    moveController.lagManager.setVpnPingOffset(vpnOffset);
+    
+    // Update UI to match initial state
+    updateWSControlUI();
+    
+    // Set up statistics update interval
+    setInterval(updateWSStats, 1000);
+    
     console.log('[Mephisto Popup] WebSocket mode initialized');
+}
+
+/**
+ * Update WebSocket control UI to match current state
+ */
+function updateWSControlUI() {
+    if (!wsMode || !moveController) return;
+    
+    // Update panic button
+    const panicBtn = document.getElementById('panic-toggle');
+    if (moveController.panicMode) {
+        panicBtn.classList.add('ws-btn-active');
+    } else {
+        panicBtn.classList.remove('ws-btn-active');
+    }
+    
+    // Update human button
+    const humanBtn = document.getElementById('human-toggle');
+    if (moveController.humanMode) {
+        humanBtn.classList.add('ws-btn-active');
+    } else {
+        humanBtn.classList.remove('ws-btn-active');
+    }
+    
+    // Update varied button
+    const variedBtn = document.getElementById('varied-toggle');
+    if (moveController.variedMode) {
+        variedBtn.classList.add('ws-btn-active');
+    } else {
+        variedBtn.classList.remove('ws-btn-active');
+    }
+    
+    // Update preset selector
+    const presetSelector = document.getElementById('preset-selector');
+    presetSelector.value = moveController.currentPreset;
+    
+    // Update lag display
+    const vpnOffset = moveController.lagManager.vpnPingOffset;
+    const lagValue = document.getElementById('lag-value');
+    lagValue.textContent = `+${vpnOffset}`;
+    const lagBtn = document.getElementById('lag-cycler');
+    const avgLag = moveController.lagManager.getAverageServerLag();
+    const totalLag = moveController.panicMode ? 
+        moveController.lagManager.getPanicLagCompensation() : 
+        moveController.lagManager.getLagCompensation();
+    lagBtn.setAttribute('data-tooltip', 
+        `VPN Lag Offset (L): ${vpnOffset}ms | Avg: ${avgLag}ms | Claim: ${totalLag}ms`);
+}
+
+/**
+ * Update WebSocket statistics display
+ */
+function updateWSStats() {
+    if (!wsMode || !moveController) return;
+    
+    const timingStats = moveController.getTimingStats();
+    const varietyStats = moveController.getVarietyStats();
+    
+    // Calculate average move time
+    let avgTime = '--';
+    if (timingStats.totalMoves > 0) {
+        avgTime = Math.round((timingStats.totalTimeMs + timingStats.engineTimeMs) / timingStats.totalMoves) + 'ms';
+    }
+    
+    // Calculate PV1 percentage
+    let pv1Pct = '--';
+    if (moveController.variedMoveSelector) {
+        const pct = moveController.variedMoveSelector.getPV1Percentage();
+        if (!isNaN(pct)) {
+            pv1Pct = pct + '%';
+        }
+    }
+    
+    // Update display
+    document.getElementById('stat-avg').textContent = `Avg: ${avgTime}`;
+    document.getElementById('stat-pv1').textContent = `PV1: ${pv1Pct}`;
+    document.getElementById('stat-blunders').textContent = `Blunders: ${varietyStats.gameBlunderCount || 0}`;
+}
+
+/**
+ * Setup WebSocket control event listeners
+ */
+function setupWebSocketControls() {
+    // Panic mode toggle
+    document.getElementById('panic-toggle').addEventListener('click', () => {
+        if (!moveController) return;
+        moveController.setPanicMode(!moveController.panicMode);
+        localStorage.setItem('ws_panic_mode', JSON.stringify(moveController.panicMode));
+        updateWSControlUI();
+    });
+    
+    // Human mode toggle
+    document.getElementById('human-toggle').addEventListener('click', () => {
+        if (!moveController) return;
+        moveController.setHumanMode(!moveController.humanMode);
+        localStorage.setItem('ws_human_mode', JSON.stringify(moveController.humanMode));
+        updateWSControlUI();
+    });
+    
+    // Varied mode toggle
+    document.getElementById('varied-toggle').addEventListener('click', () => {
+        if (!moveController) return;
+        moveController.setVariedMode(!moveController.variedMode);
+        localStorage.setItem('ws_varied_mode', JSON.stringify(moveController.variedMode));
+        updateWSControlUI();
+    });
+    
+    // Preset selector
+    document.getElementById('preset-selector').addEventListener('change', (e) => {
+        if (!moveController) return;
+        const preset = e.target.value;
+        moveController.applyPreset(preset);
+        localStorage.setItem('ws_preset', preset);
+        updateWSControlUI();
+    });
+    
+    // VPN lag offset cycler
+    const VPN_OFFSETS = [0, 30, 50, 80, 100, 150];
+    document.getElementById('lag-cycler').addEventListener('click', () => {
+        if (!moveController) return;
+        const currentOffset = moveController.lagManager.vpnPingOffset;
+        const currentIndex = VPN_OFFSETS.indexOf(currentOffset);
+        const nextIndex = (currentIndex + 1) % VPN_OFFSETS.length;
+        const nextOffset = VPN_OFFSETS[nextIndex];
+        
+        moveController.lagManager.setVpnPingOffset(nextOffset);
+        localStorage.setItem('vpn_offset', nextOffset.toString());
+        updateWSControlUI();
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (!moveController) return;
+        
+        // Only handle shortcuts if not typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            return;
+        }
+        
+        switch (e.key.toLowerCase()) {
+            case 'p':
+                document.getElementById('panic-toggle').click();
+                break;
+            case 'h':
+                document.getElementById('human-toggle').click();
+                break;
+            case 'v':
+                document.getElementById('varied-toggle').click();
+                break;
+            case 'l':
+                document.getElementById('lag-cycler').click();
+                break;
+        }
+    });
+    
+    console.log('[Mephisto Popup] WebSocket controls initialized');
 }

@@ -165,4 +165,108 @@ body.dark-mode .btn {
 .variant-badge.antichess { background-color: #607d8b; }
 .variant-badge.horde { background-color: #795548; }
 .variant-badge.racingkings { background-color: #4caf50; }
+
+/* --- WEBSOCKET MODE CONTROLS --- */
+#ws-controls {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 99;
+}
+
+body.dark-mode #ws-controls {
+    background: rgba(40, 40, 40, 0.95);
+}
+
+.ws-control-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+}
+
+.ws-btn {
+    flex: 1;
+    min-width: 40px;
+    height: 32px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.ws-btn:hover {
+    background: #f5f5f5;
+    border-color: #bbb;
+}
+
+.ws-btn.ws-btn-active {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+}
+
+.ws-btn.ws-btn-active:hover {
+    background: #45a049;
+}
+
+.ws-btn .material-icons {
+    font-size: 20px;
+}
+
+body.dark-mode .ws-btn {
+    background: #333;
+    border-color: #555;
+    color: #eee;
+}
+
+body.dark-mode .ws-btn:hover {
+    background: #444;
+    border-color: #666;
+}
+
+.ws-select {
+    flex: 2;
+    height: 32px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px 8px;
+    background: #fff;
+    font-size: 12px;
+}
+
+body.dark-mode .ws-select {
+    background: #333;
+    border-color: #555;
+    color: #eee;
+}
+
+.ws-stats {
+    font-size: 10px;
+    color: #666;
+    text-align: center;
+    padding: 4px 0;
+    border-top: 1px solid #eee;
+    margin-top: 2px;
+}
+
+body.dark-mode .ws-stats {
+    color: #aaa;
+    border-top-color: #555;
+}
+
+#lag-value {
+    font-size: 11px;
+    font-weight: bold;
+}
 .variant-badge.fischerandom { background-color: #673ab7; }

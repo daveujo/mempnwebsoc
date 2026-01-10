@@ -29,6 +29,36 @@
         <i id="dark-mode-icon" class="medium material-icons">brightness_4</i>
     </button>
 
+    <!-- WebSocket Mode Controls -->
+    <div id="ws-controls" style="display: none;">
+        <div class="ws-control-row">
+            <button id="panic-toggle" class="ws-btn tooltipped" data-position="bottom" data-tooltip="Panic Mode (P): Ultra-fast moves">
+                <i class="material-icons">flash_on</i>
+            </button>
+            <button id="human-toggle" class="ws-btn tooltipped" data-position="bottom" data-tooltip="Human Mode (H): Realistic delays">
+                <i class="material-icons">person</i>
+            </button>
+            <button id="varied-toggle" class="ws-btn ws-btn-active tooltipped" data-position="bottom" data-tooltip="Varied Mode (V): Multi-PV selection">
+                <i class="material-icons">shuffle</i>
+            </button>
+        </div>
+        <div class="ws-control-row">
+            <select id="preset-selector" class="browser-default ws-select">
+                <option value="7.5s">7.5s Blitz</option>
+                <option value="15s" selected>15s Rapid</option>
+                <option value="30s">30s Classical</option>
+            </select>
+            <button id="lag-cycler" class="ws-btn tooltipped" data-position="bottom" data-tooltip="VPN Lag Offset (L): 0ms">
+                <span id="lag-value">+0</span>
+            </button>
+        </div>
+        <div id="ws-stats" class="ws-stats">
+            <span id="stat-avg">Avg: --</span> | 
+            <span id="stat-pv1">PV1: --</span> | 
+            <span id="stat-blunders">Blunders: 0</span>
+        </div>
+    </div>
+
     <!-- Visual Overlays -->
     <div id="move-annotations"></div>
     <div id="response-annotations"></div>
