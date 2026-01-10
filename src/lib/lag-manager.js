@@ -2,6 +2,7 @@
  * LagManager - WebSocket lag measurement and compensation
  * 
  * Ported from: new move logic to apply/lichessbot/bot.js (lines 34-37)
+ * Enhanced from: lichatoextension-main/mover.user.js (lines 22-56)
  * 
  * Original implementation:
  * if (message.d?.clock?.lag !== undefined) { measuredLag = 10000; }
@@ -11,6 +12,8 @@
  * - Smart lag strategy (average + VPN offset with bounds)
  * - Dynamic lag strategy (use server-reported value)
  * - Max lag strategy (use maximum observed value)
+ * - VPN ping offset support (0, 30, 50, 80, 100, 150ms)
+ * - Panic lag compensation (separate calculation for panic mode)
  */
 export class LagManager {
     constructor(config = {}) {
@@ -22,6 +25,15 @@ export class LagManager {
         this.current = this.defaultLag;
         this.serverLagHistory = [50, 50, 50]; // Default history in ms
         this.maxHistorySize = 5;
+    }
+
+    /**
+     * Set VPN ping offset
+     * @param {number} offsetMs - VPN ping offset in milliseconds (0, 30, 50, 80, 100, 150)
+     */
+    setVpnPingOffset(offsetMs) {
+        this.vpnPingOffset = offsetMs;
+        this._recalculate();
     }
 
     /**
@@ -79,11 +91,36 @@ export class LagManager {
     }
 
     /**
-     * Get current lag value to use
+     * Get current lag value to use (for normal moves)
      * @returns {number} Current lag in milliseconds
      */
     getCurrent() {
         return this.current;
+    }
+
+    /**
+     * Get lag compensation for normal moves
+     * Bounded by 2x server average or 100ms minimum
+     * @returns {number} Lag compensation in milliseconds
+     */
+    getLagCompensation() {
+        const avgServerLag = this.getAverageServerLag();
+        const totalLag = avgServerLag + this.vpnPingOffset;
+        const maxReasonable = Math.max(avgServerLag * 2, 100);
+        return Math.min(totalLag, maxReasonable);
+    }
+
+    /**
+     * Get lag compensation for panic mode moves
+     * Bounded by 3x server average or 200ms minimum
+     * Adds extra 30ms buffer for ultra-fast moves
+     * @returns {number} Panic lag compensation in milliseconds
+     */
+    getPanicLagCompensation() {
+        const avgServerLag = this.getAverageServerLag();
+        const totalLag = avgServerLag + this.vpnPingOffset + 30; // +30ms buffer
+        const maxReasonable = Math.max(avgServerLag * 3, 200);
+        return Math.min(totalLag, maxReasonable);
     }
 
     /**
