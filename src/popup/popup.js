@@ -610,7 +610,6 @@ async function initializeWebSocketMode() {
         console.log('[Mephisto Popup] Game ended');
     };
     
-    moveController.setEnabled(true);
     wsMode = true;
     
     // Show WebSocket controls
@@ -631,7 +630,7 @@ async function initializeWebSocketMode() {
     moveController.applyPreset(preset);
     moveController.lagManager.setVpnPingOffset(vpnOffset);
     
-    // Set auto-move state
+    // Set auto-move state (from stored preference)
     moveController.setEnabled(autoMoveEnabled);
     
     // Update UI to match initial state
