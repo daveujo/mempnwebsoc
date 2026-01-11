@@ -1400,7 +1400,7 @@ async function run() {
   if (cgWrap) {
     const myCol = cgWrap.classList.contains('orientation-white') ? 'w' : 'b';
     // Only auto-play if it's our turn AND autoHint is enabled AND it's not the initial position
-    // Check if any moves have been made by looking at move history
+    // Check if any moves have been made by looking at move history elements (kwdb = move elements, u8t = move text)
     const hasMoves = $('kwdb, u8t').length > 0;
     if (game.turn() === myCol && autoHint && hasMoves) {
       setTimeout(processTurn, 500);

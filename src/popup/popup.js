@@ -675,12 +675,17 @@ function updateWSControlUI() {
     
     // Update auto-move button
     const autoMoveBtn = document.getElementById('auto-move-toggle');
-    if (moveController.enabled) {
-        autoMoveBtn.classList.add('ws-btn-active');
-        autoMoveBtn.querySelector('.material-icons').textContent = 'pause';
-    } else {
-        autoMoveBtn.classList.remove('ws-btn-active');
-        autoMoveBtn.querySelector('.material-icons').textContent = 'play_arrow';
+    if (autoMoveBtn) {
+        const autoMoveIcon = autoMoveBtn.querySelector('.material-icons');
+        if (autoMoveIcon) {
+            if (moveController.enabled) {
+                autoMoveBtn.classList.add('ws-btn-active');
+                autoMoveIcon.textContent = 'pause';
+            } else {
+                autoMoveBtn.classList.remove('ws-btn-active');
+                autoMoveIcon.textContent = 'play_arrow';
+            }
+        }
     }
     
     // Update preset selector
@@ -794,29 +799,38 @@ function setupWebSocketControls() {
     const wsControls = document.getElementById('ws-controls');
     const collapseState = JSON.parse(localStorage.getItem('ws_controls_collapsed')) || false;
     
-    if (collapseState) {
-        wsControls.classList.add('collapsed');
-        collapseBtn.querySelector('.material-icons').textContent = 'expand_more';
-        collapseBtn.setAttribute('data-tooltip', 'Expand controls');
-    }
-    
-    collapseBtn.addEventListener('click', () => {
-        const isCollapsed = wsControls.classList.toggle('collapsed');
-        const icon = collapseBtn.querySelector('.material-icons');
-        
-        if (isCollapsed) {
-            icon.textContent = 'expand_more';
+    if (collapseBtn && wsControls) {
+        if (collapseState) {
+            wsControls.classList.add('collapsed');
+            const icon = collapseBtn.querySelector('.material-icons');
+            if (icon) {
+                icon.textContent = 'expand_more';
+            }
             collapseBtn.setAttribute('data-tooltip', 'Expand controls');
-        } else {
-            icon.textContent = 'expand_less';
-            collapseBtn.setAttribute('data-tooltip', 'Collapse controls');
         }
         
-        localStorage.setItem('ws_controls_collapsed', JSON.stringify(isCollapsed));
-        
-        // Reinitialize tooltip
-        M.Tooltip.init(collapseBtn, {});
-    });
+        collapseBtn.addEventListener('click', () => {
+            const isCollapsed = wsControls.classList.toggle('collapsed');
+            const icon = collapseBtn.querySelector('.material-icons');
+            
+            if (icon) {
+                if (isCollapsed) {
+                    icon.textContent = 'expand_more';
+                    collapseBtn.setAttribute('data-tooltip', 'Expand controls');
+                } else {
+                    icon.textContent = 'expand_less';
+                    collapseBtn.setAttribute('data-tooltip', 'Collapse controls');
+                }
+            }
+            
+            localStorage.setItem('ws_controls_collapsed', JSON.stringify(isCollapsed));
+            
+            // Reinitialize tooltip if Materialize is available
+            if (typeof M !== 'undefined' && M.Tooltip) {
+                M.Tooltip.init(collapseBtn, {});
+            }
+        });
+    }
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
