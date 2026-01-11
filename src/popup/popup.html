@@ -41,12 +41,51 @@
             <button id="varied-toggle" class="ws-btn ws-btn-active tooltipped" data-position="bottom" data-tooltip="Varied Mode (V): Multi-PV selection">
                 <i class="material-icons">shuffle</i>
             </button>
+            <button id="auto-move-toggle" class="ws-btn tooltipped" data-position="bottom" data-tooltip="Auto-Move (A): Enable/disable automatic moves">
+                <i class="material-icons">play_arrow</i>
+            </button>
         </div>
         <div class="ws-control-row">
             <select id="preset-selector" class="browser-default ws-select">
-                <option value="7.5s">7.5s Blitz</option>
-                <option value="15s" selected>15s Rapid</option>
-                <option value="30s">30s Classical</option>
+                <optgroup label="Under 1 minute">
+                    <option value="15s">15s</option>
+                    <option value="30s">30s</option>
+                    <option value="45s">45s</option>
+                </optgroup>
+                <optgroup label="1 to 3 minutes">
+                    <option value="1m" selected>1m</option>
+                    <option value="1m30s">1m 30s</option>
+                    <option value="2m">2m</option>
+                    <option value="2m30s">2m 30s</option>
+                    <option value="3m">3m</option>
+                </optgroup>
+                <optgroup label="3 to 5 minutes">
+                    <option value="3m45s">3m 45s</option>
+                    <option value="4m30s">4m 30s</option>
+                    <option value="5m15s">5m 15s</option>
+                </optgroup>
+                <optgroup label="Over 5 minutes">
+                    <option value="6m">6m</option>
+                    <option value="7m">7m</option>
+                    <option value="8m">8m</option>
+                    <option value="9m">9m</option>
+                    <option value="10m">10m</option>
+                    <option value="11m">11m</option>
+                    <option value="12m">12m</option>
+                    <option value="13m">13m</option>
+                    <option value="14m">14m</option>
+                    <option value="15m">15m</option>
+                    <option value="16m">16m</option>
+                    <option value="17m">17m</option>
+                    <option value="18m">18m</option>
+                    <option value="19m">19m</option>
+                    <option value="20m">20m</option>
+                    <option value="21m">21m</option>
+                    <option value="22m">22m</option>
+                    <option value="23m">23m</option>
+                    <option value="24m">24m</option>
+                    <option value="25m">25m</option>
+                </optgroup>
             </select>
             <button id="lag-cycler" class="ws-btn tooltipped" data-position="bottom" data-tooltip="VPN Lag Offset (L): 0ms">
                 <span id="lag-value">+0</span>
@@ -57,6 +96,9 @@
             <span id="stat-pv1">PV1: --</span> | 
             <span id="stat-blunders">Blunders: 0</span>
         </div>
+        <button id="ws-collapse-toggle" class="ws-collapse-btn tooltipped" data-position="bottom" data-tooltip="Collapse controls">
+            <i class="material-icons">expand_less</i>
+        </button>
     </div>
 
     <!-- Visual Overlays -->

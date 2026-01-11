@@ -3,21 +3,53 @@
  * 
  * Ported from: lichatoextension-main/mover.user.js (lines 456-535)
  * 
- * Three presets optimized for different time controls:
- * - 7.5s: Ultra-fast time control (high blunder rate, instant moves)
- * - 15s: Standard time control (moderate blunders, balanced timing)
- * - 30s: Slow time control (low blunders, more thinking time)
+ * Expanded presets for various time controls:
+ * - Under 1 minute (15s increments): 15s, 30s, 45s
+ * - 1 to 3 minutes (30s increments): 1m, 1m30s, 2m, 2m30s, 3m
+ * - 3 to 5 minutes (45s increments): 3m45s, 4m30s, 5m15s
+ * - Over 5 minutes (1m increments): 6m-25m
+ * 
+ * Scaling approach:
+ * - Faster time controls = more blunders, faster moves, less thinking
+ * - Slower time controls = fewer blunders, more human-like delays, deeper thinking
  */
 
 export const CONFIG_PRESETS = {
-    '7.5s': {
-        engineMs: 12,
+    // Under 1 minute - 15 second increments
+    '15s': {
+        engineMs: 10,
         varied: {
-            maxCpLoss: 900,          // Allows huge blunders (hanging queen/mate)
+            maxCpLoss: 900,
             weights: [8, 40, 28, 24],
-            maxBlundersPerGame: 50,   // High limit
+            maxBlundersPerGame: 50,
             blunderThreshold: 100,
-            blunderChance: 0.45,      // 45% chance to play the bad move
+            blunderChance: 0.45,
+        },
+        human: {
+            baseDelayMs: 150,
+            maxDelayMs: 500,
+            premoveDelayMs: 0,
+            premoveMaxMs: 10,
+            lowPieceDelayMs: 20,
+            lowPieceMaxMs: 100,
+            premovePieceThreshold: 12,
+            lowPieceThreshold: 22,
+            quickMoveChance: 0.40,
+            quickMoveMs: 0,
+            tankChance: 0.005,
+            tankMinMs: 200,
+            tankMaxMs: 400,
+            randomVariance: 0.25,
+        }
+    },
+    '30s': {
+        engineMs: 15,
+        varied: {
+            maxCpLoss: 800,
+            weights: [9, 41, 27, 23],
+            maxBlundersPerGame: 40,
+            blunderThreshold: 100,
+            blunderChance: 0.40,
         },
         human: {
             baseDelayMs: 180,
@@ -36,67 +68,772 @@ export const CONFIG_PRESETS = {
             randomVariance: 0.25,
         }
     },
-    '15s': {
+    '45s': {
         engineMs: 20,
         varied: {
-            maxCpLoss: 300,            // Normal safety
-            weights: [10, 45, 23, 22],
+            maxCpLoss: 700,
+            weights: [10, 42, 26, 22],
+            maxBlundersPerGame: 30,
+            blunderThreshold: 100,
+            blunderChance: 0.35,
+        },
+        human: {
+            baseDelayMs: 200,
+            maxDelayMs: 650,
+            premoveDelayMs: 0,
+            premoveMaxMs: 15,
+            lowPieceDelayMs: 28,
+            lowPieceMaxMs: 130,
+            premovePieceThreshold: 11,
+            lowPieceThreshold: 21,
+            quickMoveChance: 0.32,
+            quickMoveMs: 0,
+            tankChance: 0.010,
+            tankMinMs: 300,
+            tankMaxMs: 550,
+            randomVariance: 0.26,
+        }
+    },
+    // 1 to 3 minutes - 30 second increments
+    '1m': {
+        engineMs: 25,
+        varied: {
+            maxCpLoss: 600,
+            weights: [12, 43, 24, 21],
+            maxBlundersPerGame: 25,
+            blunderThreshold: 100,
+            blunderChance: 0.30,
+        },
+        human: {
+            baseDelayMs: 230,
+            maxDelayMs: 700,
+            premoveDelayMs: 0,
+            premoveMaxMs: 20,
+            lowPieceDelayMs: 30,
+            lowPieceMaxMs: 140,
+            premovePieceThreshold: 11,
+            lowPieceThreshold: 21,
+            quickMoveChance: 0.30,
+            quickMoveMs: 0,
+            tankChance: 0.012,
+            tankMinMs: 350,
+            tankMaxMs: 600,
+            randomVariance: 0.27,
+        }
+    },
+    '1m30s': {
+        engineMs: 30,
+        varied: {
+            maxCpLoss: 500,
+            weights: [14, 44, 22, 20],
+            maxBlundersPerGame: 20,
+            blunderThreshold: 100,
+            blunderChance: 0.25,
+        },
+        human: {
+            baseDelayMs: 260,
+            maxDelayMs: 750,
+            premoveDelayMs: 0,
+            premoveMaxMs: 25,
+            lowPieceDelayMs: 35,
+            lowPieceMaxMs: 150,
+            premovePieceThreshold: 10,
+            lowPieceThreshold: 20,
+            quickMoveChance: 0.28,
+            quickMoveMs: 0,
+            tankChance: 0.015,
+            tankMinMs: 400,
+            tankMaxMs: 650,
+            randomVariance: 0.28,
+        }
+    },
+    '2m': {
+        engineMs: 35,
+        varied: {
+            maxCpLoss: 400,
+            weights: [16, 45, 21, 18],
+            maxBlundersPerGame: 15,
+            blunderThreshold: 100,
+            blunderChance: 0.20,
+        },
+        human: {
+            baseDelayMs: 300,
+            maxDelayMs: 800,
+            premoveDelayMs: 0,
+            premoveMaxMs: 30,
+            lowPieceDelayMs: 40,
+            lowPieceMaxMs: 160,
+            premovePieceThreshold: 10,
+            lowPieceThreshold: 20,
+            quickMoveChance: 0.26,
+            quickMoveMs: 10,
+            tankChance: 0.018,
+            tankMinMs: 450,
+            tankMaxMs: 700,
+            randomVariance: 0.29,
+        }
+    },
+    '2m30s': {
+        engineMs: 40,
+        varied: {
+            maxCpLoss: 350,
+            weights: [18, 46, 20, 16],
+            maxBlundersPerGame: 12,
+            blunderThreshold: 100,
+            blunderChance: 0.18,
+        },
+        human: {
+            baseDelayMs: 340,
+            maxDelayMs: 850,
+            premoveDelayMs: 10,
+            premoveMaxMs: 40,
+            lowPieceDelayMs: 45,
+            lowPieceMaxMs: 170,
+            premovePieceThreshold: 10,
+            lowPieceThreshold: 20,
+            quickMoveChance: 0.25,
+            quickMoveMs: 20,
+            tankChance: 0.020,
+            tankMinMs: 500,
+            tankMaxMs: 750,
+            randomVariance: 0.30,
+        }
+    },
+    '3m': {
+        engineMs: 45,
+        varied: {
+            maxCpLoss: 300,
+            weights: [20, 47, 19, 14],
             maxBlundersPerGame: 10,
             blunderThreshold: 100,
             blunderChance: 0.16,
         },
         human: {
-            baseDelayMs: 250,
-            maxDelayMs: 800,
-            premoveDelayMs: 0,
-            premoveMaxMs: 20,
-            lowPieceDelayMs: 30,
-            lowPieceMaxMs: 150,
+            baseDelayMs: 380,
+            maxDelayMs: 900,
+            premoveDelayMs: 20,
+            premoveMaxMs: 50,
+            lowPieceDelayMs: 50,
+            lowPieceMaxMs: 180,
             premovePieceThreshold: 10,
             lowPieceThreshold: 20,
-            quickMoveChance: 0.25,
-            quickMoveMs: 0,
-            tankChance: 0.01,
-            tankMinMs: 400,
-            tankMaxMs: 600,
-            randomVariance: 0.27,
+            quickMoveChance: 0.24,
+            quickMoveMs: 30,
+            tankChance: 0.025,
+            tankMinMs: 550,
+            tankMaxMs: 800,
+            randomVariance: 0.31,
         }
     },
-    '30s': {
+    // 3 to 5 minutes - 45 second increments
+    '3m45s': {
+        engineMs: 52,
+        varied: {
+            maxCpLoss: 260,
+            weights: [22, 49, 17, 12],
+            maxBlundersPerGame: 8,
+            blunderThreshold: 100,
+            blunderChance: 0.14,
+        },
+        human: {
+            baseDelayMs: 430,
+            maxDelayMs: 1000,
+            premoveDelayMs: 30,
+            premoveMaxMs: 80,
+            lowPieceDelayMs: 60,
+            lowPieceMaxMs: 220,
+            premovePieceThreshold: 9,
+            lowPieceThreshold: 18,
+            quickMoveChance: 0.22,
+            quickMoveMs: 40,
+            tankChance: 0.030,
+            tankMinMs: 650,
+            tankMaxMs: 950,
+            randomVariance: 0.33,
+        }
+    },
+    '4m30s': {
         engineMs: 60,
         varied: {
-            maxCpLoss: 200,            // Strict safety
-            weights: [30, 55, 10, 5],
+            maxCpLoss: 220,
+            weights: [25, 51, 15, 9],
+            maxBlundersPerGame: 7,
+            blunderThreshold: 100,
+            blunderChance: 0.11,
+        },
+        human: {
+            baseDelayMs: 480,
+            maxDelayMs: 1100,
+            premoveDelayMs: 40,
+            premoveMaxMs: 100,
+            lowPieceDelayMs: 75,
+            lowPieceMaxMs: 280,
+            premovePieceThreshold: 9,
+            lowPieceThreshold: 17,
+            quickMoveChance: 0.21,
+            quickMoveMs: 50,
+            tankChance: 0.035,
+            tankMinMs: 750,
+            tankMaxMs: 1150,
+            randomVariance: 0.35,
+        }
+    },
+    '5m15s': {
+        engineMs: 70,
+        varied: {
+            maxCpLoss: 200,
+            weights: [28, 53, 13, 6],
+            maxBlundersPerGame: 6,
+            blunderThreshold: 100,
+            blunderChance: 0.09,
+        },
+        human: {
+            baseDelayMs: 530,
+            maxDelayMs: 1200,
+            premoveDelayMs: 50,
+            premoveMaxMs: 130,
+            lowPieceDelayMs: 90,
+            lowPieceMaxMs: 350,
+            premovePieceThreshold: 8,
+            lowPieceThreshold: 16,
+            quickMoveChance: 0.20,
+            quickMoveMs: 60,
+            tankChance: 0.042,
+            tankMinMs: 850,
+            tankMaxMs: 1400,
+            randomVariance: 0.37,
+        }
+    },
+    // Over 5 minutes - 1 minute increments
+    '6m': {
+        engineMs: 80,
+        varied: {
+            maxCpLoss: 180,
+            weights: [32, 54, 11, 3],
             maxBlundersPerGame: 5,
             blunderThreshold: 100,
             blunderChance: 0.08,
         },
         human: {
-            baseDelayMs: 500,
-            maxDelayMs: 1200,
-            premoveDelayMs: 50,
+            baseDelayMs: 600,
+            maxDelayMs: 1300,
+            premoveDelayMs: 60,
             premoveMaxMs: 150,
             lowPieceDelayMs: 100,
-            lowPieceMaxMs: 500,
+            lowPieceMaxMs: 400,
             premovePieceThreshold: 8,
             lowPieceThreshold: 16,
-            quickMoveChance: 0.20,
-            quickMoveMs: 60,
-            tankChance: 0.05,
+            quickMoveChance: 0.19,
+            quickMoveMs: 70,
+            tankChance: 0.048,
             tankMinMs: 1000,
+            tankMaxMs: 1600,
+            randomVariance: 0.38,
+        }
+    },
+    '7m': {
+        engineMs: 90,
+        varied: {
+            maxCpLoss: 170,
+            weights: [35, 54, 9, 2],
+            maxBlundersPerGame: 5,
+            blunderThreshold: 100,
+            blunderChance: 0.07,
+        },
+        human: {
+            baseDelayMs: 670,
+            maxDelayMs: 1400,
+            premoveDelayMs: 70,
+            premoveMaxMs: 170,
+            lowPieceDelayMs: 120,
+            lowPieceMaxMs: 450,
+            premovePieceThreshold: 8,
+            lowPieceThreshold: 16,
+            quickMoveChance: 0.18,
+            quickMoveMs: 80,
+            tankChance: 0.052,
+            tankMinMs: 1100,
+            tankMaxMs: 1700,
+            randomVariance: 0.39,
+        }
+    },
+    '8m': {
+        engineMs: 100,
+        varied: {
+            maxCpLoss: 160,
+            weights: [38, 54, 7, 1],
+            maxBlundersPerGame: 4,
+            blunderThreshold: 100,
+            blunderChance: 0.06,
+        },
+        human: {
+            baseDelayMs: 740,
+            maxDelayMs: 1500,
+            premoveDelayMs: 80,
+            premoveMaxMs: 190,
+            lowPieceDelayMs: 140,
+            lowPieceMaxMs: 500,
+            premovePieceThreshold: 8,
+            lowPieceThreshold: 15,
+            quickMoveChance: 0.17,
+            quickMoveMs: 90,
+            tankChance: 0.056,
+            tankMinMs: 1200,
+            tankMaxMs: 1800,
+            randomVariance: 0.40,
+        }
+    },
+    '9m': {
+        engineMs: 105,
+        varied: {
+            maxCpLoss: 155,
+            weights: [40, 54, 5, 1],
+            maxBlundersPerGame: 4,
+            blunderThreshold: 100,
+            blunderChance: 0.055,
+        },
+        human: {
+            baseDelayMs: 800,
+            maxDelayMs: 1600,
+            premoveDelayMs: 90,
+            premoveMaxMs: 200,
+            lowPieceDelayMs: 160,
+            lowPieceMaxMs: 550,
+            premovePieceThreshold: 7,
+            lowPieceThreshold: 15,
+            quickMoveChance: 0.16,
+            quickMoveMs: 100,
+            tankChance: 0.058,
+            tankMinMs: 1300,
+            tankMaxMs: 1900,
+            randomVariance: 0.41,
+        }
+    },
+    '10m': {
+        engineMs: 110,
+        varied: {
+            maxCpLoss: 150,
+            weights: [42, 54, 3, 1],
+            maxBlundersPerGame: 4,
+            blunderThreshold: 100,
+            blunderChance: 0.05,
+        },
+        human: {
+            baseDelayMs: 860,
+            maxDelayMs: 1700,
+            premoveDelayMs: 100,
+            premoveMaxMs: 210,
+            lowPieceDelayMs: 180,
+            lowPieceMaxMs: 600,
+            premovePieceThreshold: 7,
+            lowPieceThreshold: 15,
+            quickMoveChance: 0.15,
+            quickMoveMs: 110,
+            tankChance: 0.060,
+            tankMinMs: 1400,
             tankMaxMs: 2000,
-            randomVariance: 0.37,
+            randomVariance: 0.42,
+        }
+    },
+    '11m': {
+        engineMs: 115,
+        varied: {
+            maxCpLoss: 145,
+            weights: [44, 53, 2, 1],
+            maxBlundersPerGame: 3,
+            blunderThreshold: 100,
+            blunderChance: 0.048,
+        },
+        human: {
+            baseDelayMs: 920,
+            maxDelayMs: 1800,
+            premoveDelayMs: 110,
+            premoveMaxMs: 220,
+            lowPieceDelayMs: 200,
+            lowPieceMaxMs: 650,
+            premovePieceThreshold: 7,
+            lowPieceThreshold: 14,
+            quickMoveChance: 0.14,
+            quickMoveMs: 120,
+            tankChance: 0.062,
+            tankMinMs: 1500,
+            tankMaxMs: 2100,
+            randomVariance: 0.43,
+        }
+    },
+    '12m': {
+        engineMs: 120,
+        varied: {
+            maxCpLoss: 140,
+            weights: [45, 53, 1, 1],
+            maxBlundersPerGame: 3,
+            blunderThreshold: 100,
+            blunderChance: 0.045,
+        },
+        human: {
+            baseDelayMs: 980,
+            maxDelayMs: 1900,
+            premoveDelayMs: 120,
+            premoveMaxMs: 230,
+            lowPieceDelayMs: 220,
+            lowPieceMaxMs: 700,
+            premovePieceThreshold: 7,
+            lowPieceThreshold: 14,
+            quickMoveChance: 0.13,
+            quickMoveMs: 130,
+            tankChance: 0.064,
+            tankMinMs: 1600,
+            tankMaxMs: 2200,
+            randomVariance: 0.44,
+        }
+    },
+    '13m': {
+        engineMs: 125,
+        varied: {
+            maxCpLoss: 135,
+            weights: [46, 53, 1, 0],
+            maxBlundersPerGame: 3,
+            blunderThreshold: 100,
+            blunderChance: 0.042,
+        },
+        human: {
+            baseDelayMs: 1040,
+            maxDelayMs: 2000,
+            premoveDelayMs: 130,
+            premoveMaxMs: 240,
+            lowPieceDelayMs: 240,
+            lowPieceMaxMs: 750,
+            premovePieceThreshold: 6,
+            lowPieceThreshold: 14,
+            quickMoveChance: 0.12,
+            quickMoveMs: 140,
+            tankChance: 0.066,
+            tankMinMs: 1700,
+            tankMaxMs: 2300,
+            randomVariance: 0.45,
+        }
+    },
+    '14m': {
+        engineMs: 130,
+        varied: {
+            maxCpLoss: 130,
+            weights: [47, 52, 1, 0],
+            maxBlundersPerGame: 3,
+            blunderThreshold: 100,
+            blunderChance: 0.040,
+        },
+        human: {
+            baseDelayMs: 1100,
+            maxDelayMs: 2100,
+            premoveDelayMs: 140,
+            premoveMaxMs: 250,
+            lowPieceDelayMs: 260,
+            lowPieceMaxMs: 800,
+            premovePieceThreshold: 6,
+            lowPieceThreshold: 13,
+            quickMoveChance: 0.11,
+            quickMoveMs: 150,
+            tankChance: 0.068,
+            tankMinMs: 1800,
+            tankMaxMs: 2400,
+            randomVariance: 0.46,
+        }
+    },
+    '15m': {
+        engineMs: 135,
+        varied: {
+            maxCpLoss: 125,
+            weights: [48, 51, 1, 0],
+            maxBlundersPerGame: 3,
+            blunderThreshold: 100,
+            blunderChance: 0.038,
+        },
+        human: {
+            baseDelayMs: 1160,
+            maxDelayMs: 2200,
+            premoveDelayMs: 150,
+            premoveMaxMs: 260,
+            lowPieceDelayMs: 280,
+            lowPieceMaxMs: 850,
+            premovePieceThreshold: 6,
+            lowPieceThreshold: 13,
+            quickMoveChance: 0.10,
+            quickMoveMs: 160,
+            tankChance: 0.070,
+            tankMinMs: 1900,
+            tankMaxMs: 2500,
+            randomVariance: 0.47,
+        }
+    },
+    '16m': {
+        engineMs: 140,
+        varied: {
+            maxCpLoss: 122,
+            weights: [49, 50, 1, 0],
+            maxBlundersPerGame: 2,
+            blunderThreshold: 100,
+            blunderChance: 0.036,
+        },
+        human: {
+            baseDelayMs: 1220,
+            maxDelayMs: 2300,
+            premoveDelayMs: 160,
+            premoveMaxMs: 270,
+            lowPieceDelayMs: 300,
+            lowPieceMaxMs: 900,
+            premovePieceThreshold: 6,
+            lowPieceThreshold: 13,
+            quickMoveChance: 0.09,
+            quickMoveMs: 170,
+            tankChance: 0.072,
+            tankMinMs: 2000,
+            tankMaxMs: 2600,
+            randomVariance: 0.48,
+        }
+    },
+    '17m': {
+        engineMs: 145,
+        varied: {
+            maxCpLoss: 119,
+            weights: [50, 49, 1, 0],
+            maxBlundersPerGame: 2,
+            blunderThreshold: 100,
+            blunderChance: 0.034,
+        },
+        human: {
+            baseDelayMs: 1280,
+            maxDelayMs: 2400,
+            premoveDelayMs: 170,
+            premoveMaxMs: 280,
+            lowPieceDelayMs: 320,
+            lowPieceMaxMs: 950,
+            premovePieceThreshold: 6,
+            lowPieceThreshold: 12,
+            quickMoveChance: 0.08,
+            quickMoveMs: 180,
+            tankChance: 0.074,
+            tankMinMs: 2100,
+            tankMaxMs: 2700,
+            randomVariance: 0.49,
+        }
+    },
+    '18m': {
+        engineMs: 150,
+        varied: {
+            maxCpLoss: 116,
+            weights: [51, 48, 1, 0],
+            maxBlundersPerGame: 2,
+            blunderThreshold: 100,
+            blunderChance: 0.032,
+        },
+        human: {
+            baseDelayMs: 1340,
+            maxDelayMs: 2500,
+            premoveDelayMs: 180,
+            premoveMaxMs: 290,
+            lowPieceDelayMs: 340,
+            lowPieceMaxMs: 1000,
+            premovePieceThreshold: 5,
+            lowPieceThreshold: 12,
+            quickMoveChance: 0.07,
+            quickMoveMs: 190,
+            tankChance: 0.076,
+            tankMinMs: 2200,
+            tankMaxMs: 2800,
+            randomVariance: 0.50,
+        }
+    },
+    '19m': {
+        engineMs: 155,
+        varied: {
+            maxCpLoss: 113,
+            weights: [52, 47, 1, 0],
+            maxBlundersPerGame: 2,
+            blunderThreshold: 100,
+            blunderChance: 0.031,
+        },
+        human: {
+            baseDelayMs: 1400,
+            maxDelayMs: 2600,
+            premoveDelayMs: 190,
+            premoveMaxMs: 300,
+            lowPieceDelayMs: 360,
+            lowPieceMaxMs: 1050,
+            premovePieceThreshold: 5,
+            lowPieceThreshold: 12,
+            quickMoveChance: 0.06,
+            quickMoveMs: 200,
+            tankChance: 0.077,
+            tankMinMs: 2300,
+            tankMaxMs: 2900,
+            randomVariance: 0.50,
+        }
+    },
+    '20m': {
+        engineMs: 160,
+        varied: {
+            maxCpLoss: 110,
+            weights: [53, 46, 1, 0],
+            maxBlundersPerGame: 2,
+            blunderThreshold: 100,
+            blunderChance: 0.030,
+        },
+        human: {
+            baseDelayMs: 1460,
+            maxDelayMs: 2700,
+            premoveDelayMs: 200,
+            premoveMaxMs: 310,
+            lowPieceDelayMs: 380,
+            lowPieceMaxMs: 1100,
+            premovePieceThreshold: 5,
+            lowPieceThreshold: 11,
+            quickMoveChance: 0.05,
+            quickMoveMs: 210,
+            tankChance: 0.078,
+            tankMinMs: 2400,
+            tankMaxMs: 3000,
+            randomVariance: 0.50,
+        }
+    },
+    '21m': {
+        engineMs: 165,
+        varied: {
+            maxCpLoss: 108,
+            weights: [54, 45, 1, 0],
+            maxBlundersPerGame: 2,
+            blunderThreshold: 100,
+            blunderChance: 0.029,
+        },
+        human: {
+            baseDelayMs: 1520,
+            maxDelayMs: 2800,
+            premoveDelayMs: 210,
+            premoveMaxMs: 320,
+            lowPieceDelayMs: 400,
+            lowPieceMaxMs: 1150,
+            premovePieceThreshold: 5,
+            lowPieceThreshold: 11,
+            quickMoveChance: 0.04,
+            quickMoveMs: 220,
+            tankChance: 0.079,
+            tankMinMs: 2500,
+            tankMaxMs: 3100,
+            randomVariance: 0.50,
+        }
+    },
+    '22m': {
+        engineMs: 170,
+        varied: {
+            maxCpLoss: 106,
+            weights: [55, 44, 1, 0],
+            maxBlundersPerGame: 1,
+            blunderThreshold: 100,
+            blunderChance: 0.028,
+        },
+        human: {
+            baseDelayMs: 1580,
+            maxDelayMs: 2900,
+            premoveDelayMs: 220,
+            premoveMaxMs: 330,
+            lowPieceDelayMs: 420,
+            lowPieceMaxMs: 1200,
+            premovePieceThreshold: 5,
+            lowPieceThreshold: 11,
+            quickMoveChance: 0.03,
+            quickMoveMs: 230,
+            tankChance: 0.080,
+            tankMinMs: 2600,
+            tankMaxMs: 3200,
+            randomVariance: 0.50,
+        }
+    },
+    '23m': {
+        engineMs: 175,
+        varied: {
+            maxCpLoss: 104,
+            weights: [56, 43, 1, 0],
+            maxBlundersPerGame: 1,
+            blunderThreshold: 100,
+            blunderChance: 0.027,
+        },
+        human: {
+            baseDelayMs: 1640,
+            maxDelayMs: 3000,
+            premoveDelayMs: 230,
+            premoveMaxMs: 340,
+            lowPieceDelayMs: 440,
+            lowPieceMaxMs: 1250,
+            premovePieceThreshold: 5,
+            lowPieceThreshold: 10,
+            quickMoveChance: 0.02,
+            quickMoveMs: 240,
+            tankChance: 0.080,
+            tankMinMs: 2700,
+            tankMaxMs: 3300,
+            randomVariance: 0.50,
+        }
+    },
+    '24m': {
+        engineMs: 180,
+        varied: {
+            maxCpLoss: 102,
+            weights: [57, 42, 1, 0],
+            maxBlundersPerGame: 1,
+            blunderThreshold: 100,
+            blunderChance: 0.026,
+        },
+        human: {
+            baseDelayMs: 1700,
+            maxDelayMs: 3100,
+            premoveDelayMs: 240,
+            premoveMaxMs: 350,
+            lowPieceDelayMs: 460,
+            lowPieceMaxMs: 1300,
+            premovePieceThreshold: 4,
+            lowPieceThreshold: 10,
+            quickMoveChance: 0.01,
+            quickMoveMs: 250,
+            tankChance: 0.080,
+            tankMinMs: 2800,
+            tankMaxMs: 3400,
+            randomVariance: 0.50,
+        }
+    },
+    '25m': {
+        engineMs: 185,
+        varied: {
+            maxCpLoss: 100,
+            weights: [58, 41, 1, 0],
+            maxBlundersPerGame: 1,
+            blunderThreshold: 100,
+            blunderChance: 0.025,
+        },
+        human: {
+            baseDelayMs: 1760,
+            maxDelayMs: 3200,
+            premoveDelayMs: 250,
+            premoveMaxMs: 360,
+            lowPieceDelayMs: 480,
+            lowPieceMaxMs: 1350,
+            premovePieceThreshold: 4,
+            lowPieceThreshold: 10,
+            quickMoveChance: 0.01,
+            quickMoveMs: 260,
+            tankChance: 0.080,
+            tankMinMs: 2900,
+            tankMaxMs: 3500,
+            randomVariance: 0.50,
         }
     }
 };
 
 /**
  * Get active preset configuration
- * @param {string} presetName - '7.5s', '15s', or '30s'
+ * @param {string} presetName - Any valid preset name (e.g., '15s', '1m', '5m15s', '15m')
  * @returns {Object} Preset configuration object
  */
 export function getPreset(presetName) {
-    return CONFIG_PRESETS[presetName] || CONFIG_PRESETS['15s'];
+    return CONFIG_PRESETS[presetName] || CONFIG_PRESETS['1m'];
 }
 
 /**
