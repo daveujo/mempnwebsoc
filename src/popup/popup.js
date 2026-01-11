@@ -610,7 +610,6 @@ async function initializeWebSocketMode() {
         console.log('[Mephisto Popup] Game ended');
     };
     
-    moveController.setEnabled(true);
     wsMode = true;
     
     // Show WebSocket controls
@@ -620,8 +619,9 @@ async function initializeWebSocketMode() {
     const panicMode = JSON.parse(localStorage.getItem('ws_panic_mode')) || false;
     const humanMode = JSON.parse(localStorage.getItem('ws_human_mode')) || false;
     const variedMode = JSON.parse(localStorage.getItem('ws_varied_mode')) !== false; // Default true
-    const preset = localStorage.getItem('ws_preset') || '15s';
+    const preset = localStorage.getItem('ws_preset') || '1m';
     const vpnOffset = parseInt(localStorage.getItem('vpn_offset')) || 0;
+    const autoMoveEnabled = JSON.parse(localStorage.getItem('ws_auto_move')) || false;
     
     // Apply initial settings to controller
     moveController.setPanicMode(panicMode);
@@ -629,6 +629,9 @@ async function initializeWebSocketMode() {
     moveController.setVariedMode(variedMode);
     moveController.applyPreset(preset);
     moveController.lagManager.setVpnPingOffset(vpnOffset);
+    
+    // Set auto-move state (from stored preference)
+    moveController.setEnabled(autoMoveEnabled);
     
     // Update UI to match initial state
     updateWSControlUI();
@@ -667,6 +670,21 @@ function updateWSControlUI() {
         variedBtn.classList.add('ws-btn-active');
     } else {
         variedBtn.classList.remove('ws-btn-active');
+    }
+    
+    // Update auto-move button
+    const autoMoveBtn = document.getElementById('auto-move-toggle');
+    if (autoMoveBtn) {
+        const autoMoveIcon = autoMoveBtn.querySelector('.material-icons');
+        if (autoMoveIcon) {
+            if (moveController.enabled) {
+                autoMoveBtn.classList.add('ws-btn-active');
+                autoMoveIcon.textContent = 'pause';
+            } else {
+                autoMoveBtn.classList.remove('ws-btn-active');
+                autoMoveIcon.textContent = 'play_arrow';
+            }
+        }
     }
     
     // Update preset selector
@@ -744,6 +762,14 @@ function setupWebSocketControls() {
         updateWSControlUI();
     });
     
+    // Auto-move toggle
+    document.getElementById('auto-move-toggle').addEventListener('click', () => {
+        if (!moveController) return;
+        moveController.setEnabled(!moveController.enabled);
+        localStorage.setItem('ws_auto_move', JSON.stringify(moveController.enabled));
+        updateWSControlUI();
+    });
+    
     // Preset selector
     document.getElementById('preset-selector').addEventListener('change', (e) => {
         if (!moveController) return;
@@ -767,6 +793,44 @@ function setupWebSocketControls() {
         updateWSControlUI();
     });
     
+    // Collapse toggle
+    const collapseBtn = document.getElementById('ws-collapse-toggle');
+    const wsControls = document.getElementById('ws-controls');
+    const collapseState = JSON.parse(localStorage.getItem('ws_controls_collapsed')) || false;
+    
+    if (collapseBtn && wsControls) {
+        if (collapseState) {
+            wsControls.classList.add('collapsed');
+            const icon = collapseBtn.querySelector('.material-icons');
+            if (icon) {
+                icon.textContent = 'expand_more';
+            }
+            collapseBtn.setAttribute('data-tooltip', 'Expand controls');
+        }
+        
+        collapseBtn.addEventListener('click', () => {
+            const isCollapsed = wsControls.classList.toggle('collapsed');
+            const icon = collapseBtn.querySelector('.material-icons');
+            
+            if (icon) {
+                if (isCollapsed) {
+                    icon.textContent = 'expand_more';
+                    collapseBtn.setAttribute('data-tooltip', 'Expand controls');
+                } else {
+                    icon.textContent = 'expand_less';
+                    collapseBtn.setAttribute('data-tooltip', 'Collapse controls');
+                }
+            }
+            
+            localStorage.setItem('ws_controls_collapsed', JSON.stringify(isCollapsed));
+            
+            // Reinitialize tooltip if Materialize is available
+            if (typeof M !== 'undefined' && M.Tooltip) {
+                M.Tooltip.init(collapseBtn, {});
+            }
+        });
+    }
+    
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if (!moveController) return;
@@ -788,6 +852,9 @@ function setupWebSocketControls() {
                 break;
             case 'l':
                 document.getElementById('lag-cycler').click();
+                break;
+            case 'a':
+                document.getElementById('auto-move-toggle').click();
                 break;
         }
     });

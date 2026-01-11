@@ -1395,10 +1395,17 @@ async function run() {
   syncGameState();
 
   // Initial Turn Check
+  // Don't auto-play the first move for white - wait for opponent to move first
   const cgWrap = $('.cg-wrap')[0];
   if (cgWrap) {
     const myCol = cgWrap.classList.contains('orientation-white') ? 'w' : 'b';
-    if (game.turn() === myCol && autoHint) setTimeout(processTurn, 500);
+    // Only auto-play if it's our turn AND autoHint is enabled AND it's not the initial position
+    // Check if any moves have been made by looking at move history elements
+    // (kwdb = Lichess move list item elements, u8t = move text elements)
+    const hasMoves = $('kwdb, u8t').length > 0;
+    if (game.turn() === myCol && autoHint && hasMoves) {
+      setTimeout(processTurn, 500);
+    }
   }
 
   // Move observer
